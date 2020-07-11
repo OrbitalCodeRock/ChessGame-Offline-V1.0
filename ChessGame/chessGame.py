@@ -712,14 +712,17 @@ def main():
             
         if(piece.pinningPiece != None):
                 removeList = []
+                pinningLikeRook = False
                 if(piece.pinningPiece.name == "rook" or piece.pinningPiece.name == "queen"):
                     if(piece.pinningPiece.position[0] == piece.position[0]):
+                        pinningLikeRook = True
                         if(friendlyKing.position[0] != piece.position[0] or ((friendlyKing.position[1] < piece.position[1] < piece.pinningPiece.position[1]) == False) and (piece.pinningPiece.position[1] < piece.position[1] < friendlyKing.position[1]) == False):
                             piece.pinningPiece = None
                     elif(piece.pinningPiece.position[1] == piece.position[1]):
+                        pinningLikeRook = True
                         if(friendlyKing.position[1] != piece.position[1] or ((friendlyKing.position[0] < piece.position[0] < piece.pinningPiece.position[0]) == False) and (piece.pinningPiece.position[0] < piece.position[0] < friendlyKing.position[0]) == False):
                             piece.pinningPiece = None
-                if(piece.pinningPiece != None and (piece.pinningPiece.name == "bishop" or piece.pinningPiece.name == "queen")):
+                if(piece.pinningPiece != None and (piece.pinningPiece.name == "bishop" or (piece.pinningPiece.name == "queen" and pinningLikeRook == False))):
                     pieceIsPinned = False
                     if(piece.pinningPiece.position[0] < piece.position[0]):
                         if(piece.pinningPiece.position[1] > piece.position[1]):
