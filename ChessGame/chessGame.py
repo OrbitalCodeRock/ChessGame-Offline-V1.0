@@ -43,7 +43,7 @@ def main():
     width = 672
     height = 672
     turn = "white"
-    boardFlip = True
+    boardFlip = False
     turnCount = 1
     whiteInCheck = False
     blackInCheck = False
@@ -1317,7 +1317,7 @@ def main():
                                     elif previousPosition[0] == piece.position[0] - 168 and rook2.position[0] == piece.position[0] + 84:
                                         rook2.position[0] = piece.position[0] - 84
 
-                                flipBoard()
+                                if boardFlip: flipBoard()
                                 for y in friendlyList:
                                     if (y.position[1] == 0 or y.position[1] == 588) and y.name == 'pawn':
                                         pawnConversion(y)
