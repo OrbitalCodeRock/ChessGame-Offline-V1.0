@@ -43,7 +43,7 @@ def main():
     width = 672
     height = 672
     turn = "white"
-    boardFlip = False
+    boardFlip = True
     turnCount = 1
     whiteInCheck = False
     blackInCheck = False
@@ -115,7 +115,7 @@ def main():
                  whiteKnight1, whiteKnight2, whiteBishop1, whiteBishop2, whiteQueen,
                  whiteKing]
 
-    def getPossibleMoves(piece):
+    def getPossibleMoves(piece, friends, enemies):
         global whiteInCheck
         global blackInCheck
 
@@ -128,34 +128,27 @@ def main():
             if turn == 'black':
                 whiteInCheck = False
 
-        friendlyList = []
-        enemyList = []
+        friendlyList = friends
+        enemyList = enemies
 
-        friendlyKing = None
-        enemyKing = None
+        if friends[0].color == "white":
+            friendlyKing = whiteKing
+            enemyKing = blackKing
+        else:
+            friendlyKing = blackKing
+            enemyKing = whiteKing
 
         piece.possibleMoves = []
         piece.isDefending = []
 
         piece.isChecking = False
 
-        if piece.color == 'white':
-            friendlyList = whiteList
-            enemyList = blackList
-            friendlyKing = whiteKing
-            enemyKing = blackKing
-        else:
-            friendlyList = blackList
-            enemyList = whiteList
-            friendlyKing = blackKing
-            enemyKing = whiteKing
-
         if piece.name == 'pawn':
             piece.doubleMoveLastTurn = False
             blockingSingleMove = False
             blockingDoubleMove = False
             offSetNum = -84
-            if piece.color == 'black' and not boardFlip:
+            if piece.color == 'black':
                 offSetNum = 84
             for x in enemyList:
                 if (x.position[0] == piece.position[0] - 84 or x.position[0] == piece.position[0] + 84) and x.position[1] == piece.position[1] + offSetNum:
@@ -634,6 +627,8 @@ def main():
             piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] - 84])
             piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] + 84])
             piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] + 84])
+            for move in piece.possibleMoves:
+                piece.isDefending.append(move)
 
             if not piece.hasMoved:
                 yPosition = 0
@@ -688,7 +683,6 @@ def main():
             for x in piece.possibleMoves:
                 for y in friendlyList:
                     if y.position == x and removeList.count(x) < 1:
-                        piece.isDefending.append(x)
                         removeList.append(x)
                         break
 
@@ -1059,10 +1053,10 @@ def main():
                 piece.possibleMoves.remove(x)
 
     for x in whiteList:
-        getPossibleMoves(x)
+        getPossibleMoves(x, whiteList, blackList)
 
     for x in blackList:
-        getPossibleMoves(x)
+        getPossibleMoves(x, blackList, whiteList)
 
     def pawnConversion(pawn):
         while True:
@@ -1111,7 +1105,7 @@ def main():
                 blackNoMoves = False
                 break
 
-        if whiteNoMoves and turn == 'black':
+        if whiteNoMoves and turn == 'white':
             for piece in blackList:
                 if piece.isChecking:
                     whiteInCheck = True
@@ -1122,7 +1116,7 @@ def main():
                 print("Stalemate! Nobody Wins!")
                 return True
 
-        if blackNoMoves and turn == 'white':
+        if blackNoMoves and turn == 'black':
             for piece in whiteList:
                 if piece.isChecking:
                     blackInCheck = True
@@ -1225,38 +1219,35 @@ def main():
 
         return [whiteList, blackList]
 
-    def flipBoard():
-        for x in whiteList:
-            x.position[1] = 588 - x.position[1]
-        for x in blackList:
-            x.position[1] = 588 - x.position[1]
-
     resetBoard()
 
-    def redrawBoard():
+    # The function below draws and displays every image on the window.
+    # If a piece is selected, its possible moves become highlighted in gray.
+    # Afterwards, the code draws each piece onto the screen.
+    # The flip boolean draws each piece rotated 180 degrees.
+    # If flip is false, it doesnt rotate at all(rotates 0 degrees).
+    def redrawBoard(flip = False):
         win.blit(chessBoard, (0, 0))
-        friendlyList = []
-        enemyList = []
         if turn == 'white':
             friendlyList = whiteList
             enemyList = blackList
         else:
             friendlyList = blackList
             enemyList = whiteList
+
         for x in friendlyList:
             if x.isSelected:
                 pygame.draw.rect(win, Color(222, 218, 9), Rect(x.position[0], x.position[1], 84, 84))
                 for y in x.possibleMoves:
                     pygame.draw.rect(win, Color(172, 172, 172), Rect(y[0] + 2, y[1] + 2, 80, 80))
-            win.blit(x.img, (x.position[0], x.position[1]))
+            win.blit(pygame.transform.rotate(x.img, 180 * flip), (x.position[0], x.position[1]))
 
         for x in enemyList:
-            if x.isSelected:
-                pygame.draw.rect(win, Color(222, 218, 9), Rect(x.position[0], x.position[1], 84, 84))
-                for y in x.possibleMoves:
-                    pygame.draw.rect(win, Color(172, 172, 172), Rect(y[0] + 2, y[1] + 2, 80, 80))
-            win.blit(x.img, (x.position[0], x.position[1]))
+            win.blit(pygame.transform.rotate(x.img, 180 * flip), (x.position[0], x.position[1]))
+        if flip:
+            win.blit(pygame.transform.rotate(win, 180), (0, 0))
         pygame.display.update()
+        return flip
 
     while True:
         for event_var in pygame.event.get():
@@ -1266,32 +1257,32 @@ def main():
 
             elif event_var.type == MOUSEBUTTONDOWN:
                 mousePos = pygame.mouse.get_pos()
-                friendlyList = []
-                enemyList = []
                 if turn == "white":
                     friendlyList = whiteList
                     enemyList = blackList
                 else:
                     friendlyList = blackList
                     enemyList = whiteList
-
+                flipped = boardFlip and turn == 'black'
+                add_flip_offset = 588 * flipped
+                mult_flip_offset = (-1 * (not flipped)) + (1 * flipped)
                 for piece in friendlyList:
-                    if piece.position[0] < mousePos[0] < piece.position[0] + 84 and piece.position[1] < mousePos[1] < piece.position[1] + 84:
-                        for x in friendlyList:
-                            x.isSelected = False
-                        piece.isSelected = True
-                        redrawBoard()
-                    elif piece.isSelected:
+                    if piece.isSelected:
                         previousPosition = []
+                        # The code below checks whether or not the mouse clicked on a possible move.
+                        # If the display of the board is flipped, add_flip_offset and mult_flip_offset allows the code to check a flipped version of the move.
+                        # This is necessary because flipping the display of the board does not change the numerical position of the pieces.
                         for x in piece.possibleMoves:
-                            if x[0] < mousePos[0] < x[0] + 84 and x[1] < mousePos[1] < x[1] + 84:
+                            if add_flip_offset - x[0] * mult_flip_offset < mousePos[0] < (add_flip_offset - x[0] + (84 * mult_flip_offset)) * mult_flip_offset and add_flip_offset - x[1] * mult_flip_offset < mousePos[1] < (add_flip_offset - x[1] + (84 * mult_flip_offset)) * mult_flip_offset:
+                                turnCount += 1
+                                turn = enemyList[0].color
                                 for y in enemyList:
                                     if y.position == x:
                                         x = y.position
                                         y.position = [-84, -84]
                                         enemyList.remove(y)
                                         break
-                                    elif piece.name == 'pawn' and y.name == 'pawn' and y.doubleMoveLastTurn and (piece.position[0] - 84 == y.position[0] or piece.position[0] + 84) and piece.position[1] == y.position[1]:
+                                    elif piece.name == 'pawn' and y.name == 'pawn' and y.doubleMoveLastTurn and (piece.position[0] - 84 == y.position[0] or piece.position[0] + 84 == y.position[0]) and piece.position[1] == y.position[1]:
                                         previousPosition = piece.position
                                         piece.position = x
                                         y.position = [-84, -84]
@@ -1317,22 +1308,20 @@ def main():
                                     elif previousPosition[0] == piece.position[0] - 168 and rook2.position[0] == piece.position[0] + 84:
                                         rook2.position[0] = piece.position[0] - 84
 
-                                if boardFlip: flipBoard()
                                 for y in friendlyList:
                                     if (y.position[1] == 0 or y.position[1] == 588) and y.name == 'pawn':
                                         pawnConversion(y)
-                                    getPossibleMoves(y)
+                                    getPossibleMoves(y, friendlyList, enemyList)
 
                                 if (piece.position[1] - 168 == previousPosition[1] or piece.position[1] + 168 == previousPosition[1]) and piece.name == 'pawn':
                                     piece.doubleMoveLastTurn = True
 
                                 for y in enemyList:
-                                    getPossibleMoves(y)
+                                    getPossibleMoves(y, enemyList, friendlyList)
 
-                                turnCount += 1
+                                redrawBoard(turn == 'black' and boardFlip)
+                                print("Turn {}: {}".format(turnCount, turn))
                                 askForReset = checkForEndgame()
-                                turn = enemyList[0].color
-                                redrawBoard()
                                 if askForReset:
                                     while True:
                                         response = input(
@@ -1344,15 +1333,21 @@ def main():
                                             whiteList = listHolder[0]
                                             blackList = listHolder[1]
                                             for x in whiteList:
-                                                getPossibleMoves(x)
+                                                getPossibleMoves(x, whiteList, blackList)
 
                                             for x in blackList:
-                                                getPossibleMoves(x)
+                                                getPossibleMoves(x, blackList, whiteList)
                                             break
                                         elif response == 'no' or response == 'n':
                                             break
                                         else:
                                             print('Invalid Input. Please try again.')
+                    # The code below checks if a piece was clicked
+                    elif add_flip_offset - piece.position[0] * mult_flip_offset < mousePos[0] < (add_flip_offset - piece.position[0] + (84 * mult_flip_offset)) * mult_flip_offset and add_flip_offset - piece.position[1] * mult_flip_offset < mousePos[1] < (add_flip_offset - piece.position[1] + (84 * mult_flip_offset)) * mult_flip_offset:
+                        for x in friendlyList:
+                            x.isSelected = False
+                        piece.isSelected = True
+                        redrawBoard(turn == 'black' and boardFlip)
 
 
 main()
