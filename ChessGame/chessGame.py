@@ -115,6 +115,13 @@ def main():
                  whiteKnight1, whiteKnight2, whiteBishop1, whiteBishop2, whiteQueen,
                  whiteKing]
 
+    # Below is the largest function in the entire program(so far).
+    # Calculates all the possible moves for a given piece and adds them
+    # to the piece's list of possible moves.
+    # The moves are calculated from the perspective of the piece,
+    # so the 'friends' and 'enemies' parameters
+    # help clarify who's doing what.
+    # There are different move checking procedures for each piece.
     def getPossibleMoves(piece, friends, enemies):
         global whiteInCheck
         global blackInCheck
@@ -151,42 +158,58 @@ def main():
             if piece.color == 'black':
                 offSetNum = 84
             for x in enemyList:
+                # If an enemy piece is in front of the pawn and on a
+                # diagonal(to the left or right of the square directly in front of the pawn),
+                # add the enemies position to the pawn's possible move list.
                 if (x.position[0] == piece.position[0] - 84 or x.position[0] == piece.position[0] + 84) and x.position[1] == piece.position[1] + offSetNum:
                     piece.possibleMoves.append(x.position)
+                    # If that enemy is a king, the pawn is checking the king.
                     if x.name == 'king':
                         piece.isChecking = True
+                # If an enemy piece is on the square directly in front of the pawn,
+                # the pawn is prevented from moving to that square.
                 if x.position == [piece.position[0], piece.position[1] + offSetNum]:
                     blockingSingleMove = True
+                # If an enemy piece is two squares directly in front of the pawn,
+                # the pawn is prevented from moving to that square.
                 if x.position == [piece.position[0], piece.position[1] + offSetNum * 2]:
                     blockingDoubleMove = True
+                # If the enemy piece in question is a pawn that moved two squares last turn,
+                # and is directly to the left or right of this piece, add the square behind the enemy pawn to this
+                # piece's possible move list(en pessant).
                 if x.position[1] == piece.position[1] and (x.position[0] == piece.position[0] - 84 or x.position[0] == piece.position[0] + 84):
                     if x.name == 'pawn' and x.doubleMoveLastTurn:
                         piece.possibleMoves.append([x.position[0], x.position[1] + offSetNum])
 
+            # Checks to see if a friendly piece is blocking this pawn's movement.
             for x in friendlyList:
                 if x.position == [piece.position[0], piece.position[1] + offSetNum]:
                     blockingSingleMove = True
                 if x.position == [piece.position[0], piece.position[1] + offSetNum * 2]:
                     blockingDoubleMove = True
 
+            # If the piece has not reached the edge of the board, add the square directly in front to its possible
+            # moves.
             if 0 < piece.position[1] < 588 and not blockingSingleMove:
                 piece.possibleMoves.append([piece.position[0], piece.position[1] + offSetNum])
 
+            # If the piece has not moved from its starting position and the square two squares ahead is clear,
+            # add that square to its possible moves.
             if (piece.position[1] == 504 or piece.position[1] == 84) and (not blockingSingleMove and not blockingDoubleMove):
                 piece.possibleMoves.append([piece.position[0], piece.position[1] + (offSetNum * 2)])
 
-            for x in friendlyList:
-                if (x.position[0] == piece.position[0] - 84 or x.position[0] == piece.position[0] + 84) and x.position[1] == piece.position[1] + offSetNum:
-                    piece.isDefending.append(x.position)
-
+            # Add the pawn's capturing squares(squares where it can capture) to its list of defended squares.
             piece.isDefending.append([piece.position[0] - 84, piece.position[1] + offSetNum])
             piece.isDefending.append([piece.position[0] + 84, piece.position[1] + offSetNum])
 
+        # This function handles move checking behavior for pieces that can move like the rook.
         def verticalHorizontalMoveChecking():
             closestPieceUp = None
             closestPieceDown = None
             closestPieceLeft = None
             closestPieceRight = None
+            # The loop below finds the closest pieces to this piece.
+            # If the piece is an allied piece it is added to this piece's defended list.
             for x in friendlyList:
                 if x.position[0] == piece.position[0] and x != piece:
                     if x.position[1] < piece.position[1]:
@@ -222,6 +245,8 @@ def main():
                         if closestPieceRight is None or closestPieceRight.position[0] > x.position[0]:
                             closestPieceRight = x
 
+            # The code below checks to see if this piece is pinning a piece(a piece that prevents the enemy king from
+            # being put in check and is unable to move as a result).
             pinnedPiece = None
             if enemyKing.position[0] == piece.position[0]:
                 if enemyKing.position[1] < piece.position[1]:
@@ -342,7 +367,9 @@ def main():
                         while xPosition <= 588:
                             piece.isDefending.append([xPosition, piece.position[1]])
                             xPosition += 84
-
+            # The if statements below add all the squares to this piece's possible move list where it should be able to
+            # move. It does this by adding all squares including and before the closest pieces that are directly
+            # up, left, right, and down, respective to the piece. If one of those pieces is the king, it is in check.
             if closestPieceUp is not None:
                 yPosition = piece.position[1] - 84
                 while yPosition > closestPieceUp.position[1]:
@@ -366,7 +393,6 @@ def main():
                 if closestPieceDown.color == enemyList[0].color:
                     piece.possibleMoves.append(closestPieceDown.position)
                     if closestPieceDown.name == "king":
-                        blackInCheck = True
                         piece.isChecking = True
             else:
                 yPosition = piece.position[1] + 84
@@ -382,7 +408,6 @@ def main():
                 if closestPieceLeft.color == enemyList[0].color:
                     piece.possibleMoves.append(closestPieceLeft.position)
                     if closestPieceLeft.name == "king":
-                        blackInCheck = True
                         piece.isChecking = True
             else:
                 xPosition = piece.position[0] - 84
@@ -398,7 +423,6 @@ def main():
                 if closestPieceRight.color == enemyList[0].color:
                     piece.possibleMoves.append(closestPieceRight.position)
                     if closestPieceRight.name == "king":
-                        blackInCheck = True
                         piece.isChecking = True
             else:
                 xPosition = piece.position[0] + 84
@@ -406,33 +430,48 @@ def main():
                     piece.possibleMoves.append([xPosition, piece.position[1]])
                     xPosition += 84
 
+        # The function defined above is able to calculate a rook's every possible move
+        # so it is called if this piece is a rook.
         if piece.name == 'rook':
             verticalHorizontalMoveChecking()
             for x in piece.possibleMoves:
                 piece.isDefending.append(x)
 
+        # The code below just adds every possible movement a knight could make to this piece's possible move list.
+        # We don't have to worry about these moves being out of bounds, because these moves will be removed later.
+        # The noted code below used to do out of bounds checking, though it currently isn't necessary.
         if piece.name == 'knight':
-            if piece.position[1] >= 168:
-                if piece.position[0] > 0:
-                    piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] - (84 * 2)])
-                if piece.position[0] < 588:
-                    piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] - (84 * 2)])
-            if piece.position[1] <= 420:
-                if piece.position[0] > 0:
-                    piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] + (84 * 2)])
-                if piece.position[0] < 588:
-                    piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] + (84 * 2)])
-            if piece.position[0] >= 168:
-                if piece.position[1] > 0:
-                    piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] - 84])
-                if piece.position[1] < 588:
-                    piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] + 84])
-            if piece.position[0] <= 420:
-                if piece.position[1] > 0:
-                    piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] - 84])
-                if piece.position[1] < 588:
-                    piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] + 84])
+            piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] - (84 * 2)])
+            piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] - (84 * 2)])
+            piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] + (84 * 2)])
+            piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] + (84 * 2)])
+            piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] - 84])
+            piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] + 84])
+            piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] - 84])
+            piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] + 84])
+            # if piece.position[1] >= 168:
+            #     if piece.position[0] > 0:
+            #         piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] - (84 * 2)])
+            #     if piece.position[0] < 588:
+            #         piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] - (84 * 2)])
+            # if piece.position[1] <= 420:
+            #     if piece.position[0] > 0:
+            #         piece.possibleMoves.append([piece.position[0] - 84, piece.position[1] + (84 * 2)])
+            #     if piece.position[0] < 588:
+            #         piece.possibleMoves.append([piece.position[0] + 84, piece.position[1] + (84 * 2)])
+            # if piece.position[0] >= 168:
+            #     if piece.position[1] > 0:
+            #         piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] - 84])
+            #     if piece.position[1] < 588:
+            #         piece.possibleMoves.append([piece.position[0] - (84 * 2), piece.position[1] + 84])
+            # if piece.position[0] <= 420:
+            #     if piece.position[1] > 0:
+            #         piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] - 84])
+            #     if piece.position[1] < 588:
+            #         piece.possibleMoves.append([piece.position[0] + (84 * 2), piece.position[1] + 84])
 
+            # Add's this piece's possible moves to its list of defended squares and removes possible moves that overlap
+            # with friendly pieces.
             removeList = []
             for x in piece.possibleMoves:
                 piece.isDefending.append(x)
@@ -452,7 +491,9 @@ def main():
                 if canRemove:
                     piece.possibleMoves.remove(x)
 
-        def diagnolMoveChecking():
+        # This function is responsible for finding possible moves for pieces that can move like a bishop.
+        # Similarly to the last function, it also looks for any pinned pieces.
+        def diagonolMoveChecking():
             xPosition = piece.position[0] - 84
             yPosition = piece.position[1] - 84
             loneEnemyPiece = None
@@ -605,19 +646,24 @@ def main():
                 xPosition += 84
                 yPosition += 84
 
+        # Uses the function above to get possible moves for bishops.
         if piece.name == 'bishop':
-            diagnolMoveChecking()
+            diagonolMoveChecking()
             for x in piece.possibleMoves:
                 piece.isDefending.append(x)
 
+        # Movement behavior for the queen is just a combination of the last two functions.
         if piece.name == 'queen':
             verticalHorizontalMoveChecking()
             for x in piece.possibleMoves:
                 piece.isDefending.append(x)
-            diagnolMoveChecking()
+            diagonolMoveChecking()
             for x in piece.possibleMoves:
                 piece.isDefending.append(x)
 
+        # The king has some tricky behavior to check.
+        # For example: not being able to move onto squares where it would be in danger
+        # or castling.
         if piece.name == 'king':
             piece.possibleMoves.append([piece.position[0] - 84, piece.position[1]])
             piece.possibleMoves.append([piece.position[0] + 84, piece.position[1]])
@@ -638,7 +684,9 @@ def main():
                     yPosition = 588
                     rook1 = whiteRook1
                     rook2 = whiteRook2
-                if not rook1.hasMoved and piece.color == rook1.color:
+
+                # The code below checks to see if another piece is preventing the king from castling(on either side).
+                if not rook1.hasMoved:
                     castleBlocked = False
                     for x in friendlyList:
                         if rook1.position[0] < x.position[0] < piece.position[0] and x.position[1] == yPosition:
@@ -658,7 +706,7 @@ def main():
                             break
                     if not castleBlocked:
                         piece.possibleMoves.append([piece.position[0] - 168, yPosition])
-                if not rook2.hasMoved and piece.color == rook2.color:
+                if not rook2.hasMoved:
                     castleBlocked = False
                     for x in friendlyList:
                         if rook2.position[0] > x.position[0] > piece.position[0] and x.position[1] == yPosition:
@@ -686,15 +734,8 @@ def main():
                         removeList.append(x)
                         break
 
-            for x in removeList:
-                canRemove = False
-                for y in piece.possibleMoves:
-                    if y == x:
-                        canRemove = True
-                if canRemove:
-                    piece.possibleMoves.remove(x)
-            removeList.clear()
-
+            # Removes any squares that an enemy piece is defending from the king's possible moves,
+            # this prevents the king from putting itself in danger.
             for x in piece.possibleMoves:
                 for y in enemyList:
                     for z in y.isDefending:
@@ -711,6 +752,8 @@ def main():
                 if canRemove:
                     piece.possibleMoves.remove(x)
 
+        # The code below checks to see if the piece is pinned, it's movement is restricted accordingly
+        # (depending on the piece that has it pinned).
         if piece.pinningPiece is not None:
             removeList = []
             pinningLikeRook = False
@@ -1039,6 +1082,9 @@ def main():
                     if canRemove:
                         piece.possibleMoves.remove(x)
 
+        # The code below removes any moves from each pieces list of possible moves that are out of bounds.
+        # The canRemove boolean serves as a safeguard to ensure that the move being removed
+        # is actually in the pieces move list.
         removeList = []
         for x in piece.possibleMoves:
             if x[0] < 0 or x[0] > 588 or x[1] < 0 or x[1] > 588:
@@ -1052,12 +1098,14 @@ def main():
             if canRemove:
                 piece.possibleMoves.remove(x)
 
+    # The two loops below gives pieces their possible starting moves
     for x in whiteList:
         getPossibleMoves(x, whiteList, blackList)
 
     for x in blackList:
         getPossibleMoves(x, blackList, whiteList)
 
+    # This function transforms a pawn into any requested piece.
     def pawnConversion(pawn):
         while True:
             conversionType = input("Would you like a 'queen', 'rook', 'knight', or 'bishop'?\n").casefold()
@@ -1092,6 +1140,9 @@ def main():
             else:
                 print('Invalid Input, please try again\n')
 
+    # This function checks to see if the game is over.
+    # If a player has no moves, they've either tied or lost
+    # depending on if they are in check or not.
     def checkForEndgame():
         whiteNoMoves = True
         blackNoMoves = True
@@ -1129,6 +1180,7 @@ def main():
 
         return False
 
+    # Creates a new set of pieces and lists containing those pieces. Also updates the game window.
     def resetBoard():
         win.fill((255, 255, 255))
         win.blit(chessBoard, (0, 0))
@@ -1249,12 +1301,14 @@ def main():
         pygame.display.update()
         return flip
 
+    # Main game loop.
     while True:
         for event_var in pygame.event.get():
+            # Terminates the program and closes the game window when the red X is clicked.
             if event_var.type == QUIT:
                 pygame.quit()
                 return
-
+            # This code block will perform a variety of tasks depending on where a user clicks.
             elif event_var.type == MOUSEBUTTONDOWN:
                 mousePos = pygame.mouse.get_pos()
                 if turn == "white":
@@ -1264,6 +1318,8 @@ def main():
                     friendlyList = blackList
                     enemyList = whiteList
                 flipped = boardFlip and turn == 'black'
+                # add_flip_offset will evaluate to 0 if the board is not flipped and 588 if the board is flipped.
+                # mult_flip_offset will evaluate to 1 if the board is flipped and -1 if the board is flipped
                 add_flip_offset = 588 * flipped
                 mult_flip_offset = (-1 * (not flipped)) + (1 * flipped)
                 for piece in friendlyList:
@@ -1273,20 +1329,25 @@ def main():
                         # If the display of the board is flipped, add_flip_offset and mult_flip_offset allows the code to check a flipped version of the move.
                         # This is necessary because flipping the display of the board does not change the numerical position of the pieces.
                         for x in piece.possibleMoves:
+                            # if the player clicked on one of the possible moves for a selected piece...
                             if add_flip_offset - x[0] * mult_flip_offset < mousePos[0] < (add_flip_offset - x[0] + (84 * mult_flip_offset)) * mult_flip_offset and add_flip_offset - x[1] * mult_flip_offset < mousePos[1] < (add_flip_offset - x[1] + (84 * mult_flip_offset)) * mult_flip_offset:
                                 turnCount += 1
                                 turn = enemyList[0].color
+                                # This for loop checks if an enemy piece should be taken after a move.
                                 for y in enemyList:
+                                    # Remove any enemy piece that was on the same square as the selected move
                                     if y.position == x:
                                         x = y.position
                                         y.position = [-84, -84]
                                         enemyList.remove(y)
                                         break
+                                    # Remove an enemy pawn if it was attacked by an en passant
                                     elif piece.name == 'pawn' and y.name == 'pawn' and y.doubleMoveLastTurn and (piece.position[0] - 84 == y.position[0] or piece.position[0] + 84 == y.position[0]) and piece.position[1] == y.position[1]:
                                         previousPosition = piece.position
                                         piece.position = x
                                         y.position = [-84, -84]
                                         enemyList.remove(y)
+                                # If no enemy piece was taken, move the selected piece to the requested open square.
                                 if piece.position != x:
                                     previousPosition = piece.position
                                     piece.position = x
@@ -1295,6 +1356,8 @@ def main():
                                 if piece.name == 'rook':
                                     piece.hasMoved = True
 
+                                # The code block below checks to see if the possible move was a castle.
+                                # The pieces are moved accordingly.
                                 if piece.name == 'king':
                                     piece.hasMoved = True
                                     rook1 = blackRook1
@@ -1303,22 +1366,30 @@ def main():
                                         rook1 = whiteRook1
                                         rook2 = whiteRook2
 
+                                    # When castling in chess, the king moves two squares to the right or left.
+                                    # The code checks to see if the king moved two squares to the right or left.
+                                    # It also checks to see if the respective rooks are in the right positions.
                                     if previousPosition[0] == piece.position[0] + 168 and rook1.position[0] == piece.position[0] - 168:
                                         rook1.position[0] = piece.position[0] + 84
                                     elif previousPosition[0] == piece.position[0] - 168 and rook2.position[0] == piece.position[0] + 84:
                                         rook2.position[0] = piece.position[0] - 84
 
+                                # If a pawn reaches the end of the board,
+                                # convert the pawn into a desired piece
                                 for y in friendlyList:
                                     if (y.position[1] == 0 or y.position[1] == 588) and y.name == 'pawn':
                                         pawnConversion(y)
                                     getPossibleMoves(y, friendlyList, enemyList)
 
+                                # Check to see if the player moved a pawn two squares forward.
                                 if (piece.position[1] - 168 == previousPosition[1] or piece.position[1] + 168 == previousPosition[1]) and piece.name == 'pawn':
                                     piece.doubleMoveLastTurn = True
 
+                                # Get the possible moves for the the other player now that a piece has moved.
                                 for y in enemyList:
                                     getPossibleMoves(y, enemyList, friendlyList)
 
+                                # redraw the board to display new changes to piece positions.
                                 redrawBoard(turn == 'black' and boardFlip)
                                 print("Turn {}: {}".format(turnCount, turn))
                                 askForReset = checkForEndgame()
@@ -1350,4 +1421,5 @@ def main():
                         redrawBoard(turn == 'black' and boardFlip)
 
 
+print("Turn 1: white")  # //TODO Edit placement after creating a main menu screen.
 main()
